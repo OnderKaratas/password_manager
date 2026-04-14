@@ -30,11 +30,12 @@ body { font-family:Georgia,'Times New Roman',serif; background:var(--bg); color:
 #privacy-shield .sh-icon { font-size:4rem; }
 #privacy-shield p { font-size:1.1rem; color:var(--text2); }
 
-.screen { display:none; }
-.screen.active { display:block; }
+.screen { display: none !important; }
+.screen.active.centered-page { display: flex !important; }
+.screen.active:not(.centered-page) { display: block !important; }
 
 /* AUTH */
-.centered-page { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem; }
+.centered-page { min-height:100vh; align-items:center; justify-content:center; padding:2rem; }
 .auth-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:2.5rem; width:100%; max-width:480px; box-shadow:var(--shadow); }
 .auth-card h1 { font-size:2rem; color:var(--accent); margin-bottom:0.25rem; font-style:italic; }
 .auth-card .subtitle { font-size:1rem; color:var(--text2); margin-bottom:2rem; }
