@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Şifre Kasası</title>
+<meta name="description" content="Güvenli aile şifre yöneticisi">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Şifre Kasası">
+<meta name="theme-color" content="#8B4513">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#F5F0E8;--surface:#FFFDF8;--surface2:#F0EAD8;--border:#D4C9B0;
+  --text:#2C2416;--text2:#6B5E47;--text3:#9C8E78;
+  --accent:#8B4513;--accent-light:#F5E6D5;--accent-hover:#6B3410;
+  --danger:#8B1A1A;--danger-light:#F5E6E6;
+  --success:#2D5A2D;--success-light:#E6F0E6;
+  --radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+body { font-family:Georgia,'Times New Roman',serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:17px; line-height:1.6; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
+
+/* PRIVACY SHIELD */
+#privacy-shield { display:none; position:fixed; inset:0; background:var(--bg); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:1rem; }
+#privacy-shield.active { display:flex; }
+#privacy-shield .sh-icon { font-size:4rem; }
+#privacy-shield p { font-size:1.1rem; color:var(--text2); }
+
+.screen { display:none; }
+.screen.active { display:block; }
+
+/* AUTH */
+.centered-page { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem; }
+.auth-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:2.5rem; width:100%; max-width:480px; box-shadow:var(--shadow); }
+.auth-card h1 { font-size:2rem; color:var(--accent); margin-bottom:0.25rem; font-style:italic; }
+.auth-card .subtitle { font-size:1rem; color:var(--text2); margin-bottom:2rem; }
+.lock-icon { font-size:3.5rem; text-align:center; margin-bottom:1rem; }
+
+/* FORMS */
+label { display:block; font-size:0.95rem; color:var(--text2); margin-bottom:0.4rem; font-weight:bold; }
+input[type="text"],input[type="password"],input[type="url"],select { width:100%; padding:0.85rem 1rem; font-size:1.1rem; font-family:Georgia,serif; border:1.5px solid var(--border); border-radius:var(--radius-sm); background:var(--bg); color:var(--text); outline:none; transition:border-color 0.2s; }
+select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B5E47' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 1rem center; padding-right:2.5rem; }
+input:focus,select:focus { border-color:var(--accent); background:var(--surface); }
+.field { margin-bottom:1.25rem; }
+.pw-wrap { position:relative; }
+.pw-wrap input { padding-right:3.5rem; }
+.pw-toggle { position:absolute; right:0.75rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:1.2rem; color:var(--text3); padding:0.3rem; }
+
+/* BUTTONS */
+.btn { display:inline-block; padding:0.8rem 1.5rem; font-size:1.05rem; font-family:Georgia,serif; border-radius:var(--radius-sm); border:1.5px solid transparent; cursor:pointer; transition:all 0.15s; text-align:center; }
+.btn-primary { background:var(--accent); color:#FFF8F0; border-color:var(--accent); width:100%; padding:1rem; font-size:1.15rem; margin-top:0.5rem; }
+.btn-primary:hover { background:var(--accent-hover); }
+.btn-primary:disabled { background:#C4A882; border-color:#C4A882; cursor:not-allowed; }
+.btn-secondary { background:var(--surface); color:var(--text); border-color:var(--border); }
+.btn-secondary:hover { background:var(--surface2); }
+.btn-danger { background:var(--danger-light); color:var(--danger); border-color:var(--danger); }
+.btn-sm { padding:0.45rem 0.9rem; font-size:0.9rem; }
+.btn-full { width:100%; }
+
+/* APP LAYOUT */
+.app-header { background:var(--surface); border-bottom:1px solid var(--border); padding:1rem 1.25rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; box-shadow:var(--shadow); }
+.app-header h1 { font-size:1.4rem; color:var(--accent); font-style:italic; }
+.header-actions { display:flex; gap:0.5rem; align-items:center; }
+.app-content { max-width:860px; margin:0 auto; padding:1.5rem; }
+
+/* CATEGORY TABS */
+.category-tabs { display:flex; gap:0.5rem; overflow-x:auto; padding-bottom:0.25rem; margin-bottom:1.25rem; scrollbar-width:none; }
+.category-tabs::-webkit-scrollbar { display:none; }
+.cat-tab { flex-shrink:0; padding:0.4rem 0.9rem; border-radius:999px; border:1.5px solid var(--border); background:var(--surface); color:var(--text2); font-size:0.9rem; font-family:Georgia,serif; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+.cat-tab:hover { background:var(--surface2); }
+.cat-tab.active { background:var(--accent); color:#FFF8F0; border-color:var(--accent); }
+
+/* SEARCH */
+.search-bar { position:relative; margin-bottom:1.25rem; }
+.search-bar input { padding-left:3rem; font-size:1.1rem; }
+.search-icon { position:absolute; left:1rem; top:50%; transform:translateY(-50%); font-size:1.1rem; color:var(--text3); pointer-events:none; }
+
+/* ENTRIES */
+.entries-list { display:flex; flex-direction:column; gap:0.65rem; }
+.entry-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.25rem; display:flex; align-items:center; gap:0.9rem; transition:box-shadow 0.2s; }
+.entry-card:hover { box-shadow:var(--shadow); }
+.entry-icon { width:46px; height:46px; border-radius:10px; background:var(--accent-light); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; }
+.entry-info { flex:1; min-width:0; cursor:pointer; }
+.entry-name { font-size:1.05rem; font-weight:bold; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.entry-username { font-size:0.88rem; color:var(--text2); margin-top:0.05rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.entry-cat-badge { font-size:0.75rem; padding:0.1rem 0.5rem; border-radius:999px; background:var(--surface2); color:var(--text3); border:1px solid var(--border); white-space:nowrap; flex-shrink:0; }
+.entry-quick-actions { display:flex; gap:0.35rem; flex-shrink:0; }
+.quick-btn { width:38px; height:38px; border-radius:8px; border:1px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:center; font-size:1rem; cursor:pointer; color:var(--text2); transition:all 0.15s; }
+.quick-btn:hover { background:var(--accent-light); color:var(--accent); }
+.quick-btn.copied { background:var(--success-light); color:var(--success); border-color:var(--success); }
+.quick-btn-label { width:auto; padding:0 0.75rem; font-size:0.82rem; white-space:nowrap; gap:0.3rem; }
+.quick-btn-icon { width:38px; }
+@media(max-width:520px){ .quick-btn-label { font-size:0.75rem; padding:0 0.5rem; } }
+
+/* CLIPBOARD BAR */
+.clipboard-bar { position:fixed; bottom:0; left:0; right:0; background:var(--text); color:var(--surface); padding:0.65rem 1.25rem; display:flex; align-items:center; justify-content:space-between; font-size:0.9rem; z-index:500; transform:translateY(100%); transition:transform 0.3s; }
+.clipboard-bar.visible { transform:translateY(0); }
+.clipboard-progress { height:3px; background:var(--accent-light); position:absolute; bottom:0; left:0; transition:width 30s linear; }
+#clipboard-cancel { background:none; border:1px solid rgba(255,255,255,0.3); color:#fff; border-radius:6px; padding:0.2rem 0.6rem; font-size:0.85rem; cursor:pointer; font-family:Georgia,serif; }
+
+/* MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(44,36,22,0.55); display:flex; align-items:center; justify-content:center; z-index:999; padding:1rem; }
+.modal-overlay.hidden { display:none; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:2rem; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.2); }
+.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; }
+.modal-title { font-size:1.3rem; color:var(--accent); font-style:italic; }
+.close-btn { background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text3); padding:0.25rem 0.5rem; }
+
+/* DETAIL */
+.detail-field { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; }
+.detail-field-label { font-size:0.82rem; color:var(--text3); margin-bottom:0.1rem; }
+.detail-field-value { font-size:1rem; color:var(--text); font-family:'Courier New',monospace; word-break:break-all; }
+.copy-btn { background:var(--accent-light); border:1px solid var(--border); border-radius:6px; padding:0.3rem 0.7rem; font-size:0.85rem; cursor:pointer; color:var(--accent); white-space:nowrap; flex-shrink:0; margin-left:0.75rem; font-family:Georgia,serif; }
+.copy-btn:hover { background:#E8D5C0; }
+.copy-btn.copied-state { background:var(--success-light); color:var(--success); border-color:var(--success); }
+
+/* STRENGTH BAR */
+.strength-bar { height:4px; border-radius:999px; background:var(--border); overflow:hidden; margin-top:0.5rem; }
+.strength-fill { height:100%; border-radius:999px; transition:width 0.3s,background 0.3s; }
+
+/* NOTICES */
+.notice { padding:0.85rem 1.1rem; border-radius:var(--radius-sm); font-size:0.95rem; margin-bottom:1.25rem; border-left:4px solid; }
+.notice-warn { background:#FFF8E6; color:#6B4C00; border-color:#D4A000; }
+.notice-danger { background:var(--danger-light); color:var(--danger); border-color:var(--danger); }
+.notice-success { background:var(--success-light); color:var(--success); border-color:var(--success); }
+
+/* MISC */
+.empty-state { text-align:center; padding:3rem 1rem; color:var(--text3); }
+.empty-state .ei { font-size:3rem; margin-bottom:1rem; }
+.empty-state p { font-size:1.05rem; }
+.sep { border:none; border-top:1px solid var(--border); margin:1.25rem 0; }
+.toast { position:fixed; bottom:4rem; left:50%; transform:translateX(-50%) translateY(80px); background:var(--text); color:var(--surface); padding:0.7rem 1.4rem; border-radius:999px; font-size:0.95rem; opacity:0; transition:all 0.3s; z-index:2000; white-space:nowrap; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+.section-header h2 { font-size:1rem; color:var(--text2); font-style:italic; }
+.count-badge { background:var(--accent-light); color:var(--accent); border-radius:999px; padding:0.15rem 0.65rem; font-size:0.85rem; }
+
+@media(max-width:600px){.app-header{padding:0.85rem 1rem;}.app-content{padding:1rem;}.auth-card{padding:1.5rem;}.entry-cat-badge{display:none;}}
+</style>
+</head>
+<body>
+
+<div id="privacy-shield">
+  <div class="sh-icon">🔐</div>
+  <p>Uygulama gizlendi</p>
+</div>
+
+<div id="screen-setup" class="screen centered-page">
+  <div class="auth-card">
+    <div class="lock-icon">🔐</div>
+    <h1>Şifre Kasası</h1>
+    <p class="subtitle">Başlamak için bir ana parola öbeği belirleyin.</p>
+    <div class="notice notice-warn">⚠️ Ana parola öbeğinizi unutursanız tüm veriler kalıcı olarak kaybolur. Lütfen ayrı bir kağıda yazın ve güvenli bir yerde saklayın.</div>
+    <div class="field">
+      <label for="setup-pw">Ana Parola Öbeği (en az 8 karakter)</label>
+      <div class="pw-wrap"><input type="password" id="setup-pw" placeholder="Ana parola öbeğinizi girin" autocomplete="new-password"/><button class="pw-toggle" onclick="togglePw('setup-pw',this)">👁</button></div>
+    </div>
+    <div class="field">
+      <label for="setup-pw2">Ana Parola Öbeğini Tekrar Girin</label>
+      <div class="pw-wrap"><input type="password" id="setup-pw2" placeholder="Tekrar girin" autocomplete="new-password"/><button class="pw-toggle" onclick="togglePw('setup-pw2',this)">👁</button></div>
+    </div>
+    <div id="setup-error" class="notice notice-danger" style="display:none;"></div>
+    <button class="btn btn-primary" onclick="handleSetup()">Kasayı Oluştur →</button>
+  </div>
+</div>
+
+<div id="screen-lock" class="screen centered-page">
+  <div class="auth-card">
+    <div class="lock-icon">🔒</div>
+    <h1>Şifre Kasası</h1>
+    <p class="subtitle">Devam etmek için ana parola öbeğinizi girin.</p>
+    <div class="field">
+      <label for="unlock-pw">Ana Parola Öbeği</label>
+      <div class="pw-wrap"><input type="password" id="unlock-pw" placeholder="Ana parola öbeğinizi girin" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleUnlock()"/><button class="pw-toggle" onclick="togglePw('unlock-pw',this)">👁</button></div>
+    </div>
+    <div id="unlock-attempts" class="notice notice-warn" style="display:none;"></div>
+    <div id="unlock-error" class="notice notice-danger" style="display:none;"></div>
+    <button class="btn btn-primary" id="unlock-btn" onclick="handleUnlock()">Kasayı Aç →</button>
+  </div>
+</div>
+
+<div id="screen-app" class="screen">
+  <header class="app-header">
+    <h1>🔐 Şifre Kasası</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary btn-sm" title="Yedek Al" onclick="showExportModal()">💾</button>
+      <button class="btn btn-secondary btn-sm" title="Geri Yükle" onclick="showImportModal()">📂</button>
+      <button class="btn btn-danger btn-sm" onclick="lockApp()">🔒 Kilitle</button>
+    </div>
+  </header>
+  <div class="app-content">
+    <div class="category-tabs">
+      <button class="cat-tab active" onclick="filterCategory('all',this)">🌐 Tümü</button>
+      <button class="cat-tab" onclick="filterCategory('banka',this)">🏦 Banka</button>
+      <button class="cat-tab" onclick="filterCategory('eposta',this)">📧 E-posta</button>
+      <button class="cat-tab" onclick="filterCategory('sosyal',this)">👥 Sosyal</button>
+      <button class="cat-tab" onclick="filterCategory('alisveris',this)">🛒 Alışveriş</button>
+      <button class="cat-tab" onclick="filterCategory('diger',this)">📁 Diğer</button>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="Site veya kullanıcı adı ara..." oninput="renderEntries()"/>
+    </div>
+    <div class="section-header">
+      <h2>Kayıtlı Şifreler</h2>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <span class="count-badge" id="count-badge">0 kayıt</span>
+        <button class="btn btn-primary btn-sm" onclick="showAddModal()">+ Yeni Ekle</button>
+      </div>
+    </div>
+    <div class="entries-list" id="entries-list"></div>
+  </div>
+</div>
+
+<div id="modal-edit" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-edit-title">✏️ Yeni Şifre Ekle</span>
+      <button class="close-btn" onclick="closeModal('modal-edit')">✕</button>
+    </div>
+    <div class="field">
+      <label for="edit-cat">Kategori</label>
+      <select id="edit-cat">
+        <option value="diger">📁 Diğer</option>
+        <option value="banka">🏦 Banka</option>
+        <option value="eposta">📧 E-posta</option>
+        <option value="sosyal">👥 Sosyal Medya</option>
+        <option value="alisveris">🛒 Alışveriş</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="edit-name">Site / Uygulama Adı *</label>
+      <input type="text" id="edit-name" placeholder="Örn: Ziraat Bankası, Gmail..." oninput="autoDetectCategory()"/>
+    </div>
+    <div class="field">
+      <label for="edit-username">Kullanıcı Adı veya E-posta *</label>
+      <input type="text" id="edit-username" placeholder="Örn: ahmet@gmail.com"/>
+    </div>
+    <div class="field">
+      <label for="edit-password">Şifre *</label>
+      <div class="pw-wrap"><input type="password" id="edit-password" placeholder="Şifreyi girin" oninput="updateStrengthBar()"/><button class="pw-toggle" onclick="togglePw('edit-password',this)">👁</button></div>
+      <div class="strength-bar"><div class="strength-fill" id="strength-fill" style="width:0%;background:var(--danger);"></div></div>
+      <div style="font-size:0.8rem;color:var(--text3);margin-top:0.25rem;" id="strength-label"></div>
+    </div>
+    <div class="field">
+      <label for="edit-url">Web Sitesi (isteğe bağlı)</label>
+      <input type="url" id="edit-url" placeholder="https://www.example.com"/>
+    </div>
+    <div class="field">
+      <label for="edit-note">Not (isteğe bağlı)</label>
+      <input type="text" id="edit-note" placeholder="Hatırlatıcı not..."/>
+    </div>
+    <div id="edit-error" class="notice notice-danger" style="display:none;"></div>
+    <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-edit')">İptal</button>
+      <button class="btn btn-primary btn-full" onclick="saveEntry()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-view" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="view-title">—</span>
+      <button class="close-btn" onclick="closeModal('modal-view')">✕</button>
+    </div>
+    <div class="detail-field">
+      <div><div class="detail-field-label">Kullanıcı Adı / E-posta</div><div class="detail-field-value" id="view-username">—</div></div>
+      <button class="copy-btn" id="copy-user-btn" onclick="copyAndCount('username')">Kopyala</button>
+    </div>
+    <div class="detail-field">
+      <div style="flex:1;min-width:0;">
+        <div class="detail-field-label">Şifre <span style="font-size:0.75rem;color:var(--text3);">(görmek için tıklayın)</span></div>
+        <div class="detail-field-value" id="view-password" style="filter:blur(5px);cursor:pointer;transition:filter 0.2s;" onclick="this.style.filter='none';">••••••••</div>
+      </div>
+      <button class="copy-btn" id="copy-pw-btn" onclick="copyAndCount('password')">Kopyala</button>
+    </div>
+    <div id="view-url-wrap" class="detail-field" style="display:none;">
+      <div><div class="detail-field-label">Web Sitesi</div><div class="detail-field-value" id="view-url">—</div></div>
+      <button class="copy-btn" onclick="copyField('view-url',this)">Kopyala</button>
+    </div>
+    <div id="view-note-wrap" class="detail-field" style="display:none;">
+      <div><div class="detail-field-label">Not</div><div class="detail-field-value" id="view-note">—</div></div>
+    </div>
+    <div class="notice notice-warn" style="font-size:0.88rem;margin-bottom:1rem;">📋 Şifre kopyalandıktan 30 saniye sonra pano otomatik temizlenir.</div>
+    <hr class="sep">
+    <div style="display:flex;gap:0.75rem;">
+      <button class="btn btn-secondary btn-full" onclick="editCurrentEntry()">✏️ Düzenle</button>
+      <button class="btn btn-danger btn-full" onclick="deleteCurrentEntry()">🗑 Sil</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-export" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">💾 Yedek Al</span><button class="close-btn" onclick="closeModal('modal-export')">✕</button></div>
+    <p style="color:var(--text2);margin-bottom:1.25rem;">Tüm şifrelerinizin şifreli yedeğini indirir. USB belleğe veya güvenli bir klasöre kaydedin.</p>
+    <div class="notice notice-warn">⚠️ Ana parola öbeğiniz olmadan açılamaz.</div>
+    <button class="btn btn-primary" onclick="exportData()">Yedeği İndir</button>
+  </div>
+</div>
+
+<div id="modal-import" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">📂 Yedekten Geri Yükle</span><button class="close-btn" onclick="closeModal('modal-import')">✕</button></div>
+    <p style="color:var(--text2);margin-bottom:1.25rem;">Daha önce aldığınız yedek dosyasını seçin.</p>
+    <div class="field"><label>Yedek Dosyası (.kasa)</label><input type="file" id="import-file" accept=".kasa" style="font-size:1rem;padding:0.5rem 0;"/></div>
+    <div id="import-error" class="notice notice-danger" style="display:none;"></div>
+    <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-import')">İptal</button>
+      <button class="btn btn-primary btn-full" onclick="importData()">Geri Yükle</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-confirm" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">🗑 Kaydı Sil</span><button class="close-btn" onclick="closeModal('modal-confirm')">✕</button></div>
+    <p style="font-size:1.05rem;color:var(--text2);margin-bottom:1.5rem;" id="confirm-message"></p>
+    <div style="display:flex;gap:0.75rem;">
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-confirm')">Hayır, İptal</button>
+      <button class="btn btn-danger btn-full" id="confirm-ok-btn">Evet, Sil</button>
+    </div>
+  </div>
+</div>
+
+<div class="clipboard-bar" id="clipboard-bar">
+  <span id="clipboard-msg">📋 Şifre kopyalandı</span>
+  <div class="clipboard-progress" id="clipboard-progress" style="width:100%;"></div>
+  <button id="clipboard-cancel" onclick="clearClipboardNow()">Şimdi Temizle</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// STATE
+let cryptoKey=null,entries=[],currentViewId=null,currentViewEntry=null,editingId=null,activeCategory='all';
+let failedAttempts=0,lockoutUntil=0;
+let clipboardTimer=null,bgLockTimer=null;
+
+// INIT
+async function init(){
+  showScreen(localStorage.getItem('kasa_data')?'screen-lock':'screen-setup');
+  setupVisibilityLock();
+}
+
+// BACKGROUND LOCK
+// visibilitychange fires on every modern mobile browser when the user
+// presses the home button, switches apps, or locks the screen.
+// We show the privacy shield IMMEDIATELY (0ms delay) to prevent
+// someone glancing at the app switcher from seeing passwords.
+// After 30 seconds of being hidden, we do a full lock.
+function setupVisibilityLock(){
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){
+      if(cryptoKey) document.getElementById('privacy-shield').classList.add('active');
+      bgLockTimer=setTimeout(lockApp,30000);
+    } else {
+      clearTimeout(bgLockTimer);
+      if(cryptoKey) document.getElementById('privacy-shield').classList.remove('active');
+    }
+  });
+  window.addEventListener('blur',()=>{ if(cryptoKey) document.getElementById('privacy-shield').classList.add('active'); });
+  window.addEventListener('focus',()=>{ if(cryptoKey) document.getElementById('privacy-shield').classList.remove('active'); });
+}
+
+function showScreen(id) {
+  // Hide every screen
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+  });
+
+  // Show only the requested screen
+  const target = document.getElementById(id);
+  if (target) {
+    target.classList.add('active');
+  }
+
+  // LOGIC: If we move to the APP, clear the Auth inputs for security
+  if (id === 'screen-app') {
+    document.getElementById('unlock-pw').value = '';
+    document.getElementById('setup-pw').value = '';
+    document.getElementById('setup-pw2').value = '';
+  }
+}
+// CRYPTO
+function getRandomBytes(n){ return crypto.getRandomValues(new Uint8Array(n)); }
+function b64(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function db64(s){ return Uint8Array.from(atob(s),c=>c.charCodeAt(0)); }
+
+async function deriveKey(pw,salt){
+  const enc=new TextEncoder();
+  const km=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encrypt(key,plain){
+  const iv=getRandomBytes(12),enc=new TextEncoder();
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(plain));
+  return {iv:b64(iv),data:b64(ct)};
+}
+async function decrypt(key,iv,data){
+  const dec=new TextDecoder();
+  return dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:db64(iv)},key,db64(data)));
+}
+
+// SETUP
+async function handleSetup(){
+  const p1=document.getElementById('setup-pw').value,p2=document.getElementById('setup-pw2').value;
+  const err=document.getElementById('setup-error'); err.style.display='none';
+  if(p1.length<8) return showError(err,'Ana parola öbeği en az 8 karakter olmalıdır.');
+  if(p1!==p2) return showError(err,'Şifreler eşleşmiyor.');
+  const salt=getRandomBytes(32),key=await deriveKey(p1,salt),enc=await encrypt(key,JSON.stringify([]));
+  localStorage.setItem('kasa_data',JSON.stringify({salt:b64(salt),iv:enc.iv,data:enc.data,version:2}));
+  cryptoKey=key; entries=[]; showApp();
+}
+
+// UNLOCK with brute-force throttling
+// After each failed attempt: show remaining tries.
+// After 5 failures: exponential lockout (30s → 60s → 120s → ..., max 5min).
+// The button is disabled during lockout so they can't bypass by spamming.
+async function handleUnlock(){
+  const btn=document.getElementById('unlock-btn');
+  const attEl=document.getElementById('unlock-attempts'),errEl=document.getElementById('unlock-error');
+  errEl.style.display='none';
+  if(Date.now()<lockoutUntil){ const r=Math.ceil((lockoutUntil-Date.now())/1000); return showError(errEl,`Çok fazla hatalı deneme. ${r} saniye bekleyin.`); }
+  const pw=document.getElementById('unlock-pw').value;
+  if(!pw) return showError(errEl,'Lütfen ana parola öbeğinizi girin.');
+  try{
+    const stored=JSON.parse(localStorage.getItem('kasa_data'));
+    const key=await deriveKey(pw,db64(stored.salt));
+    const plain=await decrypt(key,stored.iv,stored.data);
+    entries=JSON.parse(plain); cryptoKey=key; failedAttempts=0;
+    attEl.style.display='none'; document.getElementById('unlock-pw').value='';
+    showApp();
+  } catch(e){
+    failedAttempts++;
+    document.getElementById('unlock-pw').value='';
+    if(failedAttempts>=5){
+      const delay=Math.min(30000*Math.pow(2,failedAttempts-5),300000);
+      lockoutUntil=Date.now()+delay; btn.disabled=true;
+      const iv=setInterval(()=>{ const r=Math.ceil((lockoutUntil-Date.now())/1000); if(r<=0){clearInterval(iv);attEl.style.display='none';errEl.style.display='none';btn.disabled=false;}else showError(errEl,`Çok fazla hatalı deneme. ${r} saniye bekleyin.`); },1000);
+    } else {
+      const rem=5-failedAttempts;
+      showError(errEl,`Parola öbeği yanlış. ${rem} deneme hakkınız kaldı.`);
+      if(failedAttempts>=3){showError(attEl,`⚠️ ${failedAttempts} hatalı deneme yapıldı.`);attEl.style.display='';}
+    }
+  }
+}
+
+async function persistEntries(){
+  const enc=await encrypt(cryptoKey,JSON.stringify(entries));
+  const ex=JSON.parse(localStorage.getItem('kasa_data'));
+  ex.iv=enc.iv; ex.data=enc.data;
+  localStorage.setItem('kasa_data',JSON.stringify(ex));
+}
+
+function showApp(){ showScreen('screen-app'); document.getElementById('privacy-shield').classList.remove('active'); renderEntries(); }
+
+function lockApp(){
+  // 1. Clear sensitive memory
+  cryptoKey = null;
+  entries = [];
+  currentViewId = null;
+  currentViewEntry = null;
+
+  // 2. Clear UI states
+  clearTimeout(bgLockTimer);
+  clearClipboardNow(true);
+
+  // 3. Hide all modals
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+  document.getElementById('privacy-shield').classList.remove('active');
+
+  // 4. Force return to Lock Screen
+  showScreen('screen-lock');
+  
+  // 5. Reset error messages
+  document.getElementById('unlock-pw').value='';
+  document.getElementById('unlock-error').style.display = 'none';
+  document.getElementById('unlock-attempts').style.display = 'none';
+  document.getElementById('unlock-btn').disabled = false;
+}
+
+// CATEGORIES
+function filterCategory(cat,btn){ activeCategory=cat; document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active')); btn.classList.add('active'); renderEntries(); }
+
+const CAT_KW={ banka:['banka','ziraat','garanti','akbank','vakif','yapi','enpara','papara','deniz','ing','hsbc','qnb','finansbank'], eposta:['gmail','hotmail','yahoo','outlook','mail','yandex','proton','icloud'], sosyal:['facebook','instagram','twitter','tiktok','youtube','linkedin','whatsapp','telegram','snapchat'], alisveris:['amazon','trendyol','hepsiburada','n11','ebay','aliexpress','sahibinden'] };
+function autoDetectCategory(){ const n=document.getElementById('edit-name').value.toLowerCase(); for(const[c,kw]of Object.entries(CAT_KW)){ if(kw.some(k=>n.includes(k))){document.getElementById('edit-cat').value=c;return;} } }
+
+const CAT_INFO={ banka:{label:'🏦 Banka',icon:'🏦'}, eposta:{label:'📧 E-posta',icon:'📧'}, sosyal:{label:'👥 Sosyal',icon:'👥'}, alisveris:{label:'🛒 Alışveriş',icon:'🛒'}, diger:{label:'📁 Diğer',icon:'📁'} };
+const SITE_ICONS={ gmail:'📧',google:'🔍',facebook:'👥',instagram:'📸',twitter:'🐦',whatsapp:'💬',youtube:'▶️',netflix:'🎬',amazon:'📦',trendyol:'🛍',banka:'🏦',bank:'🏦',ziraat:'🏦',garanti:'🏦',akbank:'🏦',vakif:'🏦',default:'🌐' };
+function getIcon(name,cat){ if(cat&&CAT_INFO[cat]) return CAT_INFO[cat].icon; const l=name.toLowerCase(); for(const[k,v]of Object.entries(SITE_ICONS)) if(l.includes(k)) return v; return SITE_ICONS.default; }
+
+// RENDER
+function renderEntries(){
+  const list=document.getElementById('entries-list'),q=document.getElementById('search-input').value.toLowerCase();
+  document.getElementById('count-badge').textContent=`${entries.length} kayıt`;
+  const filtered=entries.filter(e=>(e.name.toLowerCase().includes(q)||e.username.toLowerCase().includes(q))&&(activeCategory==='all'||e.category===activeCategory));
+  if(!entries.length){ list.innerHTML=`<div class="empty-state"><div class="ei">🔑</div><p>Henüz kayıt yok.<br>+ Yeni Ekle butonuna basın.</p></div>`; return; }
+  if(!filtered.length){ list.innerHTML=`<div class="empty-state"><div class="ei">🔍</div><p>Eşleşen kayıt bulunamadı.</p></div>`; return; }
+  filtered.sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+  list.innerHTML=filtered.map(e=>`<div class="entry-card"><div class="entry-icon">${getIcon(e.name,e.category)}</div><div class="entry-info" onclick="viewEntry('${e.id}')"><div class="entry-name">${esc(e.name)}</div><div class="entry-username">${esc(e.username)}</div></div><span class="entry-cat-badge">${CAT_INFO[e.category]?.label||'📁 Diğer'}</span><div class="entry-quick-actions"><button class="quick-btn" title="Kullanıcı adını kopyala" onclick="quickCopy('${e.id}','user',this)">👤 Kullanıcı Adını Kopyala</button><button class="quick-btn quick-btn-label" title="Şifreyi kopyala" onclick="quickCopy('${e.id}','pw',this)">🔑 Şifreyi Kopyala</button><button class="quick-btn quick-btn-icon" title="Detaylar" onclick="viewEntry('${e.id}')">⋯</button></div></div>`).join('');
+}
+
+// QUICK COPY
+function quickCopy(id,type,btn){
+  const e=entries.find(x=>x.id===id); if(!e) return;
+  const text=type==='user'?e.username:e.password;
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.classList.add('copied'); setTimeout(()=>btn.classList.remove('copied'),1500);
+    if(type==='pw') startClipboardCountdown();
+    else showToast('Kullanıcı adı kopyalandı ✓');
+  });
+}
+
+// CLIPBOARD COUNTDOWN
+// Writes a single space to the clipboard after 30 seconds, overwriting the password.
+// This protects against clipboard history readers and people who grab the phone
+// after a copy operation. The user sees a countdown bar and can clear it early.
+function startClipboardCountdown(){
+  clearTimeout(clipboardTimer);
+  const bar=document.getElementById('clipboard-bar'),prog=document.getElementById('clipboard-progress');
+  let sec=30;
+  bar.classList.add('visible');
+  prog.style.transition='none'; prog.style.width='100%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ prog.style.transition='width 30s linear'; prog.style.width='0%'; }));
+  function tick(){ document.getElementById('clipboard-msg').textContent=`📋 Şifre kopyalandı — ${sec}s sonra pano temizlenecek`; if(sec<=0){clearClipboardNow();return;} sec--; clipboardTimer=setTimeout(tick,1000); }
+  tick();
+}
+function clearClipboardNow(silent=false){
+  clearTimeout(clipboardTimer);
+  navigator.clipboard.writeText(' ').catch(()=>{});
+  document.getElementById('clipboard-bar').classList.remove('visible');
+  if(!silent) showToast('Pano temizlendi ✓');
+}
+
+// ADD/EDIT
+function showAddModal(){
+  editingId=null;
+  document.getElementById('modal-edit-title').textContent='✏️ Yeni Şifre Ekle';
+  ['edit-name','edit-username','edit-password','edit-url','edit-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('edit-cat').value='diger';
+  document.getElementById('edit-error').style.display='none';
+  document.getElementById('strength-fill').style.width='0%';
+  document.getElementById('strength-label').textContent='';
+  openModal('modal-edit');
+}
+function showEditModal(id){
+  const e=entries.find(x=>x.id===id); if(!e) return;
+  editingId=id; document.getElementById('modal-edit-title').textContent='✏️ Kaydı Düzenle';
+  document.getElementById('edit-name').value=e.name; document.getElementById('edit-username').value=e.username;
+  document.getElementById('edit-password').value=e.password; document.getElementById('edit-url').value=e.url||'';
+  document.getElementById('edit-note').value=e.note||''; document.getElementById('edit-cat').value=e.category||'diger';
+  document.getElementById('edit-error').style.display='none'; updateStrengthBar(); closeModal('modal-view'); openModal('modal-edit');
+}
+async function saveEntry(){
+  const name=document.getElementById('edit-name').value.trim(),username=document.getElementById('edit-username').value.trim(),password=document.getElementById('edit-password').value,url=document.getElementById('edit-url').value.trim(),note=document.getElementById('edit-note').value.trim(),category=document.getElementById('edit-cat').value;
+  const errEl=document.getElementById('edit-error'); errEl.style.display='none';
+  if(!name) return showError(errEl,'Site / Uygulama adı zorunludur.');
+  if(!username) return showError(errEl,'Kullanıcı adı veya e-posta zorunludur.');
+  if(!password) return showError(errEl,'Şifre zorunludur.');
+  if(editingId){ const i=entries.findIndex(e=>e.id===editingId); if(i!==-1) entries[i]={...entries[i],name,username,password,url,note,category}; }
+  else entries.push({id:genId(),name,username,password,url,note,category});
+  await persistEntries(); closeModal('modal-edit'); renderEntries();
+  showToast(editingId?'Kayıt güncellendi ✓':'Yeni şifre eklendi ✓');
+}
+
+// VIEW
+function viewEntry(id){
+  const e=entries.find(x=>x.id===id); if(!e) return;
+  currentViewId=id; currentViewEntry=e;
+  document.getElementById('view-title').textContent=getIcon(e.name,e.category)+' '+e.name;
+  document.getElementById('view-username').textContent=e.username;
+  const pwEl=document.getElementById('view-password'); pwEl.textContent=e.password; pwEl.style.filter='blur(5px)';
+  const uw=document.getElementById('view-url-wrap'); if(e.url){document.getElementById('view-url').textContent=e.url;uw.style.display='';}else uw.style.display='none';
+  const nw=document.getElementById('view-note-wrap'); if(e.note){document.getElementById('view-note').textContent=e.note;nw.style.display='';}else nw.style.display='none';
+  openModal('modal-view');
+}
+function copyAndCount(type){
+  if(!currentViewEntry) return;
+  const text=type==='password'?currentViewEntry.password:currentViewEntry.username;
+  const btnId=type==='password'?'copy-pw-btn':'copy-user-btn';
+  const btn=document.getElementById(btnId);
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='Kopyalandı ✓'; btn.classList.add('copied-state');
+    setTimeout(()=>{btn.textContent='Kopyala';btn.classList.remove('copied-state');},2000);
+    if(type==='password') startClipboardCountdown();
+    else showToast('Kullanıcı adı kopyalandı ✓');
+  });
+}
+function copyField(elId,btn){ navigator.clipboard.writeText(document.getElementById(elId).textContent).then(()=>{btn.textContent='Kopyalandı ✓';setTimeout(()=>btn.textContent='Kopyala',1800);}); }
+function editCurrentEntry(){ showEditModal(currentViewId); }
+function deleteCurrentEntry(){
+  const e=entries.find(x=>x.id===currentViewId); if(!e) return;
+  document.getElementById('confirm-message').textContent=`"${e.name}" kaydını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`;
+  document.getElementById('confirm-ok-btn').onclick=async()=>{ entries=entries.filter(x=>x.id!==currentViewId); await persistEntries(); closeModal('modal-confirm'); closeModal('modal-view'); renderEntries(); showToast('Kayıt silindi'); };
+  openModal('modal-confirm');
+}
+
+// STRENGTH METER
+function updateStrengthBar(){
+  const pw=document.getElementById('edit-password').value,fill=document.getElementById('strength-fill'),label=document.getElementById('strength-label');
+  if(!pw){fill.style.width='0%';label.textContent='';return;}
+  const wordCount=(pw.match(/[a-zA-ZğüşıöçĞÜŞİÖÇ]{3,}/g)||[]).length;
+  const isPassphrase=wordCount>=5&&(pw.includes('-')||pw.includes(' '));
+  let s=0;
+  if(isPassphrase){
+    s=40+Math.min(wordCount,8)*7;
+  } else {
+    if(pw.length>=8)s+=20; if(pw.length>=12)s+=15; if(pw.length>=16)s+=15;
+    if(/[A-Z]/.test(pw))s+=10; if(/[a-z]/.test(pw))s+=10; if(/[0-9]/.test(pw))s+=10; if(/[^A-Za-z0-9]/.test(pw))s+=20;
+    if(/^[a-z]+[0-9]+$/i.test(pw))s-=15; if(/(.)\1{2,}/.test(pw))s-=10;
+  }
+  s=Math.max(0,Math.min(100,s)); fill.style.width=s+'%';
+  if(s<30){fill.style.background='#C0392B';label.style.color='#C0392B';label.textContent='⚠️ Çok zayıf';}
+  else if(s<55){fill.style.background='#E67E22';label.style.color='#E67E22';label.textContent='⚡ Orta';}
+  else if(s<80){fill.style.background='#27AE60';label.style.color='#27AE60';label.textContent='✓ İyi';}
+  else{fill.style.background='#1E8449';label.style.color='#1E8449';label.textContent=isPassphrase?'✓✓ Parola öbeği — çok güçlü':'✓✓ Çok güçlü';}
+}
+
+// EXPORT/IMPORT
+function showExportModal(){openModal('modal-export');}
+function showImportModal(){openModal('modal-import');}
+function exportData(){
+  const blob=new Blob([localStorage.getItem('kasa_data')],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`sifre-kasasi-yedek-${new Date().toISOString().split('T')[0]}.kasa`; a.click();
+  URL.revokeObjectURL(a.href); closeModal('modal-export'); showToast('Yedek dosyası indirildi ✓');
+}
+async function importData(){
+  const file=document.getElementById('import-file').files[0],errEl=document.getElementById('import-error'); errEl.style.display='none';
+  if(!file) return showError(errEl,'Lütfen bir yedek dosyası seçin.');
+  try{
+    const text=await file.text(),parsed=JSON.parse(text);
+    if(!parsed.salt||!parsed.iv||!parsed.data) throw new Error();
+    const plain=await decrypt(cryptoKey,parsed.iv,parsed.data); JSON.parse(plain);
+    localStorage.setItem('kasa_data',text); entries=JSON.parse(plain);
+    closeModal('modal-import'); renderEntries(); showToast('Yedek başarıyla geri yüklendi ✓');
+  }catch(e){showError(errEl,'Dosya okunamadı veya bu ana parola öbeğine ait değil.');}
+}
+
+// MODAL HELPERS
+function openModal(id){document.getElementById(id).classList.remove('hidden');}
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hidden');}));
+
+// UTILS
+function togglePw(id,btn){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';btn.textContent=i.type==='password'?'👁':'🙈';}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function showError(el,msg){el.textContent=msg;el.style.display='';}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+
+// PWA INSTALL
+let dip=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;showIB();});
+function showIB(){if(document.getElementById('ib'))return;const b=document.createElement('div');b.id='ib';b.style.cssText='position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:var(--accent);color:#FFF8F0;padding:0.75rem 1.25rem;border-radius:999px;font-size:0.95rem;font-family:Georgia,serif;display:flex;gap:0.75rem;align-items:center;z-index:3000;box-shadow:0 4px 20px rgba(0,0,0,0.25);white-space:nowrap;';b.innerHTML='<span>📲 Uygulamayı yükle</span><button onclick="doInstall()" style="background:#FFF8F0;color:var(--accent);border:none;border-radius:999px;padding:0.3rem 0.85rem;font-size:0.9rem;cursor:pointer;font-family:Georgia,serif;">Yükle</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#FFF8F0;font-size:1.1rem;cursor:pointer;">✕</button>';document.body.appendChild(b);}
+async function doInstall(){if(!dip)return;dip.prompt();const r=await dip.userChoice;dip=null;const b=document.getElementById('ib');if(b)b.remove();if(r.outcome==='accepted')showToast('Uygulama yüklendi ✓');}
+
+init();
+</script>
+<script>
+if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>
